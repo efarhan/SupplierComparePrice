@@ -1,0 +1,67 @@
+/* Hallmark · tokens.css · theme: terrazzo (off-white) · genre: modern-minimal · scope: app · v2.0.0
+ * Supplier Price Compare design tokens. The single source of colour, type, space and motion.
+ * Every colour and font goes through a token declared here; no literal past this block. */
+:root {
+  /* Paper: warm off-white ground, wells and plates */
+  --color-paper: oklch(96% 0.009 82);
+  --color-paper-2: oklch(92% 0.012 82);
+  --color-paper-3: oklch(87.5% 0.014 80);
+  --color-plate: oklch(99.5% 0.003 82);
+
+  /* Ink: warm near-black, three steps */
+  --color-ink: oklch(16% 0.006 60);
+  --color-ink-2: oklch(27% 0.006 60);
+  --color-muted: oklch(46% 0.01 60);
+
+  /* Rule: hairlines and the 2px card bar */
+  --color-rule: oklch(81% 0.012 80);
+
+  /* Accent: rust, the one signal (winner, primary action, error) */
+  --color-accent: oklch(53% 0.15 38);
+  --color-accent-soft: oklch(91% 0.035 45);
+  --color-accent-ink: oklch(99.5% 0.003 82);
+  --color-focus: oklch(50% 0.16 38);
+
+  /* Error and success read through the accent and ink, never red/green alone */
+  --color-error: var(--color-accent);
+
+  /* Type: Syne display, Onest body, JetBrains Mono for measurements */
+  --font-display: "Syne", ui-sans-serif, sans-serif;
+  --font-body: "Onest", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+
+  /* Type scale: 1.25 ratio from 16px body */
+  --text-xs: 0.75rem;    /* 12px codes */
+  --text-sm: 0.875rem;   /* 14px labels, helpers */
+  --text-md: 1rem;       /* 16px body */
+  --text-lg: 1.125rem;   /* 18px row titles */
+  --text-xl: 1.25rem;    /* 20px card heads */
+  --text-display-s: 1.75rem; /* 28px screen heads */
+  --text-display: 2.25rem;   /* 36px page head, held on mobile */
+  --tracking-display: -0.025em;
+  --display-weight: 700;
+
+  /* Space: the 4px scale */
+  --space-3xs: 2px; --space-2xs: 4px; --space-xs: 8px; --space-sm: 12px;
+  --space-md: 16px; --space-lg: 24px; --space-xl: 40px; --space-2xl: 64px;
+
+  /* Surfaces: zero radius everywhere, hairline + 2px bar, hard offset shadow */
+  --radius-card: 0;
+  --radius-pill: 0;
+  --rule-hair: 1px;
+  --rule-bar: 2px;
+  --shadow-card: 14px 14px 0 var(--color-paper-3);
+  --shadow-card-hover: 14px 14px 0 var(--color-ink);
+
+  /* Motion: durations, easings, only transform and opacity animate */
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --dur-long: 420ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in: cubic-bezier(0.64, 0, 0.78, 0.33);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Layout */
+  --container: 480px;
+  --hit-target: 44px;
+}

@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Compare prices across your suppliers</title>
+<meta name="description" content="See every item and each supplier’s price side by side, with the cheapest source marked on every row.">
+<style>
+/* Hallmark · shape: app screen · genre: playful (locked system) · screen: S1 Compare · states: full, empty, invalid · contrast: pass · v2.0.0
+ * critique: P5 H4 E4 S5 · preserve: DESIGN.md tokens, Segoe UI, chip/CTA patterns · introduce: focus rings, four data states, motion rules
+ * waive 1 · Segoe UI is the display and body face · DESIGN.md locks the type as a house system
+ * waive 7b · --card resolves to #fff · mm allows #fff paper; card sits on tinted --light
+ * waive 22 · hex neutrals inherited from the locked system · tinted toward purple already (#e8e2f2, #f6f0ff)
+ * dismissed 49 · the whole item card is the button · a multi-line card label must wrap, nowrap would clip prices
+ * built: Hallmark · theme: none (DESIGN.md lock) · v2.0.0 */
+:root {
+  --purple: #5b2a86;
+  --yellow: #ffc300;
+  --green: #06d6a0;
+  --pink: #ef476f;
+  --blue: #118ab2;
+  --dark: #1d1a2f;
+  --light: #fdf6ff;
+  --card: #ffffff;
+  --rule: #e8e2f2;
+  --paper-2: #f6f0ff;
+  --muted: #6b6478;
+  --shadow-card: 0 3px 10px rgb(29 26 47 / 0.12);
+  --yellow-hover: #ffd633;
+  --radius-card: 14px;
+  --radius-input: 12px;
+  --dur-micro: 120ms;
+  --dur-short: 220ms;
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --space-xs: 4px; --space-sm: 8px; --space-md: 16px; --space-lg: 24px;
+  --font-body: 'Segoe UI', system-ui, sans-serif;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow-x: clip; }
+body {
+  font-family: var(--font-body);
+  background: var(--light);
+  color: var(--dark);
+  font-size: 17px;
+  line-height: 1.5;
+  padding-bottom: 40px;
+}
+:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+
+header {
+  background: var(--purple);
+  color: var(--card);
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
+}
+header h1 { font-size: clamp(26px, 6vw, 32px); font-weight: 800; letter-spacing: 0.5px; text-wrap: balance; }
+header p { margin-top: var(--space-xs); color: var(--yellow); font-weight: 600; font-size: 15px; }
+
+.section { padding: var(--space-lg) var(--space-md) var(--space-xs); max-width: 680px; margin: 0 auto; }
+.section h2 { font-size: 20px; font-weight: 800; margin-bottom: var(--space-xs); display: flex; align-items: center; gap: var(--space-sm); }
+.section .hint { color: var(--muted); font-size: 14px; margin-bottom: 12px; }
+
+/* Item list: buttons, not clickable divs */
+.item-list { display: grid; gap: var(--space-sm); margin-bottom: var(--space-md); }
+.item-row {
+  display: block; width: 100%; text-align: left;
+  background: var(--card);
+  border: 2px solid var(--rule);
+  border-radius: var(--radius-input);
+  padding: var(--space-sm) var(--space-md);
+  font: inherit; color: inherit; cursor: pointer;
+  transition: border-color var(--dur-short) var(--ease-out), background-color var(--dur-short) var(--ease-out);
+}
+.item-row:hover { background: var(--paper-2); }
+.item-row:active { transform: translateY(1px); }
+.item-row.selected { border-color: var(--purple); background: var(--paper-2); }
+.item-row:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+.item-row .name { font-weight: 800; font-size: 18px; margin-bottom: var(--space-sm); min-width: 0; overflow-wrap: break-word; }
+.item-row .best { font-weight: 600; font-size: 14px; color: var(--muted); margin-bottom: var(--space-sm); }
+.item-row .best strong { color: var(--dark); font-weight: 800; }
+.prices { display: flex; gap: var(--space-xs); flex-wrap: wrap; min-width: 0; }
+.chip {
+  border-radius: 8px; padding: var(--space-xs) var(--space-sm);
+  font-size: 14px; font-weight: 700; color: var(--card);
+  font-variant-numeric: tabular-nums;
+  min-height: 32px; display: inline-flex; align-items: center; gap: var(--space-xs);
+}
+.chip.win { outline: 3px solid var(--dark); }
+.chip.win::after { content: " ★"; }
+.chip:focus-visible, .chip[aria-disabled="true"] { opacity: 0.55; }
+.chip .sup { opacity: 0.85; font-weight: 600; }
+.chip.empty { background: var(--rule); color: var(--muted); }
+
+/* CTA: the page's one filled primary is yellow */
+#addBtn {
+  width: 100%;
+  background: var(--yellow);
+  color: var(--dark);
+  border: none;
+  font: 800 18px var(--font-body);
+  padding: var(--space-md);
+  border-radius: var(--radius-input);
+  cursor: pointer;
+  min-height: 44px;
+  transition: transform var(--dur-micro) var(--ease-out), background-color var(--dur-short) var(--ease-out);
+}
+#addBtn:hover { background: var(--yellow-hover); }
+#addBtn:active { transform: scale(0.98); }
+#addBtn:focus-visible { outline: 2px solid var(--purple); outline-offset: 2px; }
+
+/* Empty state: what is empty, , one action */
+.empty-card {
+  background: var(--card);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-lg) var(--space-md);
+  text-align: center;
+}
+.empty-card .lead { font-weight: 800; font-size: 18px; margin-bottom: var(--space-xs); }
+.empty-card .why { color: var(--muted); font-size: 14px; margin-bottom: var(--space-sm); }
+
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>Supplier Price Compare</h1>
+  <p>Sample data only, nothing is saved</p>
+</header>
+
+<!-- S1 · Compare: one idea, the price comparison itself -->
+<main class="section" id="secList" aria-labelledby="listHead">
+  <h2 id="listHead">Today’s prices</h2>
+  <p class="hint">Every item with each supplier’s price. The starred chip is the cheapest source.</p>
+
+  <div class="item-list" id="itemList">
+
+    <button class="item-row selected" type="button" aria-pressed="true">
+      <span class="name">Beras Wangi 5kg</span>
+      <span class="best">Cheapest at <strong>Pasar Malam Trading, RM 29.90</strong></span>
+      <span class="prices">
+        <span class="chip" style="background: var(--pink)"><span class="sup">Klang</span> RM 32.50</span>
+        <span class="chip win" style="background: var(--blue)"><span class="sup">Pasar</span> RM 29.90</span>
+        <span class="chip" style="background: var(--purple)"><span class="sup">JB</span> RM 31.20</span>
+      </span>
+    </button>
+
+    <button class="item-row" type="button" aria-pressed="false">
+      <span class="name">Minyak Masak 5L</span>
+      <span class="best">Cheapest at <strong>JB Wholesale, RM 36.90</strong></span>
+      <span class="prices">
+        <span class="chip" style="background: var(--pink)"><span class="sup">Klang</span> RM 38.00</span>
+        <span class="chip" style="background: var(--blue)"><span class="sup">Pasar</span> RM 42.50</span>
+        <span class="chip win" style="background: var(--purple)"><span class="sup">JB</span> RM 36.90</span>
+      </span>
+    </button>
+
+    <button class="item-row" type="button" aria-pressed="false">
+      <span class="name">Serai 1kg (Lemongrass)</span>
+      <span class="best">Cheapest at <strong>Pasar Malam Trading, RM 6.20</strong></span>
+      <span class="prices">
+        <span class="chip" style="background: var(--pink)"><span class="sup">Klang</span> RM 8.50</span>
+        <span class="chip win" style="background: var(--blue)"><span class="sup">Pasar</span> RM 6.20</span>
+        <span class="chip" style="background: var(--purple)"><span class="sup">JB</span> RM 7.80</span>
+      </span>
+    </button>
+
+    <!-- invalid-price state: no valid entry yet for JB -->
+    <button class="item-row" type="button" aria-pressed="false">
+      <span class="name">Telur 30pcs</span>
+      <span class="best">Cheapest at <strong>Klang Import, RM 13.50</strong></span>
+      <span class="prices">
+        <span class="chip win" style="background: var(--pink)"><span class="sup">Klang</span> RM 13.50</span>
+        <span class="chip" style="background: var(--blue)"><span class="sup">Pasar</span> RM 14.00</span>
+        <span class="chip empty"><span class="sup">JB</span> none yet</span>
+      </span>
+    </button>
+
+  </div>
+
+  <button id="addBtn" type="button">+ Add Item</button>
+</main>
+
+<!-- Empty state, shown when the list has no items -->
+<section class="section" id="secEmpty" aria-labelledby="emptyHead">
+  <h2 id="emptyHead">Today’s prices</h2>
+  <div class="empty-card">
+    <p class="lead">Nothing to compare yet</p>
+    <p class="why">Add an item and enter each supplier’s price to see who wins.</p>
+    <button id="emptyAddBtn" type="button" style="all: unset; cursor: pointer; font: 800 16px var(--font-body); color: var(--purple); min-height: 44px; display: inline-flex; align-items: center;">+ Add your first item</button>
+  </div>
+</section>
+</body>
+</html>

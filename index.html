@@ -1,0 +1,1257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Supplier Price Compare</title>
+<meta name="description" content="Compare grocery prices across three suppliers and see the cheapest source for every item, instantly.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=Onest:wght@400;500&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="base.css">
+<style>
+/* Hallmark · index.html S1 redesign · theme: terrazzo (off-white) · mode: redesign · depth: full · scope: app · states: full, invalid, empty · v2.0.0
+ * preserve: script hooks (#addBtn #itemList .item-row .chip .prices #priceGrid #selName #resultList), render/renderInputsOnly model
+ * waive 7b · --color-plate resolves near-white · terrazzo: off-white colourway declares the plate
+ * waive 64 · the tag, amounts and row codes are codes and measurements · mono is the material for prices per DESIGN.md rule 2
+ * built: the project · redesign: full · v2.0.0 */
+
+/* Screen frame */
+header { padding: var(--space-lg) var(--space-md) var(--space-md); text-align: center; }
+header h1 { font-size: var(--text-display); }
+header p { margin-top: var(--space-2xs); color: var(--color-muted); font-size: var(--text-sm); }
+.who-row { display: flex; justify-content: center; align-items: center; gap: var(--space-sm); margin-top: var(--space-xs); }
+.who-row .btn--quiet { min-height: 36px; padding: 0 var(--space-md); font-size: var(--text-sm); width: auto; }
+
+.section { max-width: var(--container); margin: 0 auto; padding: var(--space-md) var(--space-md) 0; }
+.section h2 { font-size: var(--text-xl); margin-bottom: var(--space-2xs); }
+.section .hint { color: var(--color-muted); font-size: var(--text-sm); margin-bottom: var(--space-md); }
+
+/* S1: item ledger. Whole card is the button; winner in rust + star. */
+.item-list { display: grid; gap: var(--space-md); margin-bottom: var(--space-md); }
+.item-row {
+  position: relative;
+  display: block; width: 100%; text-align: left;
+  background: var(--color-plate);
+  border: var(--rule-bar) solid var(--color-ink);
+  box-shadow: var(--shadow-card);
+  padding: var(--space-md);
+  font: inherit; color: inherit; cursor: pointer;
+}
+@media (hover: hover) {
+  .item-row:hover { box-shadow: var(--shadow-card-hover); }
+}
+.item-row:active { transform: translateY(1px); }
+.item-row.selected { background: var(--color-paper-2); }
+.item-row:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 3px; box-shadow: var(--shadow-card-hover); }
+.item-row:disabled, .item-row[aria-disabled="true"] { opacity: 0.55; cursor: not-allowed; transform: none; }
+.item-row .name { display: block; font: 700 var(--text-lg)/1.2 var(--font-display); letter-spacing: var(--tracking-display); min-width: 0; overflow-wrap: break-word; }
+.item-row .tag { display: block; font: 500 var(--text-xs) var(--font-mono); color: var(--color-muted); margin-bottom: var(--space-xs); }
+.item-row .prices { display: grid; }
+.chip {
+  display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-xs);
+  padding: var(--space-sm) 0;
+  border-top: var(--rule-hair) solid var(--color-rule);
+  font: 500 var(--text-sm) var(--font-body); color: var(--color-ink);
+}
+.item-row .prices .chip:first-of-type { border-top: none; }
+.chip .sup { color: var(--color-muted); }
+.chip .amt { font: 500 var(--text-md) var(--font-mono); font-variant-numeric: tabular-nums; }
+.chip.win .amt { color: var(--color-accent); font-size: var(--text-lg); }
+.chip.win .amt::after { content: " ★"; font-size: var(--text-sm); }
+.chip.empty .amt { color: var(--color-muted); font-size: var(--text-sm); }
+
+#addBtn { width: 100%; font: 500 var(--text-md) var(--font-body); padding: 0 var(--space-lg); }
+
+/* Users ledger */
+.user-row { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); padding: var(--space-sm) 0; border-top: var(--rule-hair) solid var(--color-rule); }
+#userLedger .user-row:first-child { border-top: none; }
+.user-row .who .nm { font-weight: 500; font-size: var(--text-md); }
+.badge { display: inline-block; font: 500 var(--text-xs) var(--font-mono); padding: var(--space-3xs) var(--space-xs); border: 1px solid var(--color-rule); color: var(--color-muted); margin-left: var(--space-xs); }
+.badge.on { border-color: var(--color-accent); color: var(--color-accent); }
+.user-row .btn--quiet { min-height: 36px; padding: 0 var(--space-md); font-size: var(--text-sm); width: auto; }
+#secUsers h3 { margin-top: var(--space-lg); }
+#secUsers .btn--danger { margin-top: var(--space-sm); }
+#secUsers .btn--quiet { margin-top: var(--space-xs); }
+#inviteOpenBtn { margin-top: var(--space-md); }
+#secUsers .hint.mono { font-family: var(--font-mono); }
+
+/* Suppliers: swatch row and edit-in-place */
+.swatch-row { display: flex; gap: var(--space-xs); }
+.swatch-row input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.swatch-row label { width: 32px; height: 32px; margin: 0; cursor: pointer; border: 2px solid transparent; display: block; }
+.swatch-row input:checked + label { border-color: var(--color-ink); }
+.swatch-row input:focus-visible + label { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+.supplier-row { display: flex; justify-content: space-between; align-items: center; gap: var(--space-sm); padding: var(--space-sm) 0; border-top: var(--rule-hair) solid var(--color-rule); }
+#supplierLedger .supplier-row:first-child { border-top: none; }
+.supplier-row .nm { font-weight: 500; font-size: var(--text-md); display: flex; align-items: center; gap: var(--space-xs); min-width: 0; overflow-wrap: break-word; }
+.supplier-row .sw { width: 14px; height: 14px; flex-shrink: 0; }
+.supplier-row .wins { font: 500 var(--text-xs) var(--font-mono); color: var(--color-muted); }
+.supplier-row .btn--quiet { min-height: 36px; padding: 0 var(--space-md); font-size: var(--text-sm); width: auto; }
+#supplierAddBtn { margin-top: var(--space-md); }
+
+/* Viewer read-only: disabled channels + text badge, never colour alone.
+   Sign out is exempt — a viewer must always be able to leave. */
+.app-readonly .btn { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+.app-readonly .btn--leave { opacity: 1; cursor: pointer; pointer-events: auto; }
+.app-readonly input { opacity: 0.55; cursor: not-allowed; pointer-events: none; }
+.readonly-note { font: 500 var(--text-sm) var(--font-body); color: var(--color-muted); }
+
+/* S2 · item form */
+#secItem .form-tag { display: flex; justify-content: space-between; align-items: baseline; }
+#secItem .well { font-family: var(--font-body); font-weight: 500; }
+#secItem label { margin: var(--space-md) 0 var(--space-2xs); }
+#secItem .form-tag .label { margin: 0; }
+#secItem .helper.err { color: var(--color-error); }
+#secItem .btn--quiet { margin-top: var(--space-xs); }
+
+/* Bands: label half size muted, value in mono */
+.band { display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-sm); margin-top: var(--space-md); }
+.band .band-lbl { font-size: var(--text-sm); color: var(--color-muted); }
+.band .band-val { font: 500 var(--text-xl) var(--font-mono); font-variant-numeric: tabular-nums; }
+.band .band-val.is-win { color: var(--color-accent); }
+#copyBtn { margin-top: var(--space-md); width: auto; padding: 0 var(--space-lg); }
+#copyBtn:focus-visible { outline: 2px solid var(--color-focus); outline-offset: 2px; }
+#copyBtn.copied { border-color: var(--color-accent); color: var(--color-accent); }
+
+/* Corner ticks on the entry card */
+#entryCard { box-shadow: none; }
+#entryCard .ticks-mark { position: absolute; width: 10px; height: 10px; pointer-events: none; }
+
+/* S2: price entry wells */
+#selName {
+  background: var(--color-plate);
+  border: var(--rule-bar) solid var(--color-ink);
+  box-shadow: var(--shadow-card);
+  color: var(--color-ink);
+  font: 700 var(--text-lg)/1.2 var(--font-display);
+  padding: var(--space-sm) var(--space-md);
+  margin-bottom: var(--space-md);
+}
+.price-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-md); }
+.price-field { position: relative; }
+.price-field label { margin: 0 0 var(--space-2xs); }
+.price-field label .code { margin-left: var(--space-2xs); }
+.price-field input {
+  width: 100%;
+  font: 500 var(--text-lg) var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  padding: var(--space-sm) var(--space-md);
+  border: var(--rule-bar) solid var(--color-rule);
+  background: var(--color-plate);
+  color: var(--color-ink);
+  outline: 2px solid transparent;
+  outline-offset: -3px;
+}
+.price-field input:focus { border-color: var(--color-ink); outline-color: var(--color-focus); }
+.price-field input.cheapest { border-color: var(--color-accent); }
+.price-field input:disabled { opacity: 0.55; cursor: not-allowed; }
+
+/* S3: winners table */
+.result-row {
+  display: flex; justify-content: space-between; align-items: baseline; gap: var(--space-sm);
+  padding: var(--space-sm) 0;
+  border-top: var(--rule-hair) solid var(--color-rule);
+  flex-wrap: wrap;
+}
+#resultList .result-row:first-child { border-top: none; }
+.result-row .who { font-weight: 500; font-size: var(--text-md); min-width: 0; overflow-wrap: break-word; }
+.result-row .who small { display: block; font: 500 var(--text-xs) var(--font-mono); color: var(--color-muted); margin-top: var(--space-3xs); }
+.result-row .amt { font: 500 var(--text-lg) var(--font-mono); font-variant-numeric: tabular-nums; }
+.result-row.cheapest .amt { color: var(--color-accent); }
+.result-row.plain .amt { color: var(--color-muted); font-size: var(--text-sm); }
+.note { font-size: var(--text-sm); color: var(--color-muted); margin-top: var(--space-sm); }
+
+/* Bottom nav: five tabs, hash-routed */
+.app-nav { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-plate); border-top: var(--rule-bar) solid var(--color-ink); display: flex; z-index: 200; }
+.app-nav button {
+  flex: 1; min-height: 56px; padding: var(--space-xs) var(--space-2xs);
+  background: none; border: none; border-right: var(--rule-hair) solid var(--color-rule);
+  font: 500 var(--text-xs) var(--font-body); color: var(--color-muted); cursor: pointer;
+}
+.app-nav button:last-child { border-right: none; }
+.app-nav button[aria-current="page"] { color: var(--color-accent); font-weight: 500; box-shadow: inset 0 2px 0 var(--color-accent); }
+.app-nav button:focus-visible { outline: 2px solid var(--color-focus); outline-offset: -3px; }
+body { padding-bottom: 76px; }
+
+/* S5 · catalog */
+#secCatalog .searchrow { margin-bottom: var(--space-md); }
+#secCatalog .well { font-family: var(--font-body); font-weight: 400; }
+.cat-grid { display: grid; grid-template-columns: 1fr; gap: var(--space-md); }
+.cat-card {
+  position: relative; display: block; width: 100%; text-align: left;
+  background: var(--color-plate); border: 1px solid var(--color-rule);
+  padding: var(--space-sm) var(--space-md);
+  font: inherit; color: inherit; cursor: pointer;
+}
+.cat-card:hover { background: var(--color-paper-2); }
+.cat-card:active { transform: translateY(1px); }
+.cat-card .nm { font: 700 var(--text-md)/1.2 var(--font-display); margin-top: var(--space-2xs); min-width: 0; overflow-wrap: break-word; }
+.cat-card .bs { font-size: var(--text-xs); color: var(--color-muted); margin-top: var(--space-2xs); }
+.cat-card .bs strong { color: var(--color-accent); font-weight: 500; }
+.cat-card:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+@media (min-width: 640px) {
+  .cat-grid { grid-template-columns: 1fr 1fr; }
+  .price-grid { grid-template-columns: repeat(3, 1fr); }
+  header h1 { font-size: var(--text-display); }
+}
+</style>
+</head>
+<body>
+<!-- Auth gate: sign in / create account, shown when no session exists -->
+<div id="authView" hidden>
+  <header>
+    <h1>Price Compare</h1>
+    <p>Sign in to your price lists</p>
+  </header>
+
+  <!-- L1 · Sign in -->
+  <div class="section" id="authSignIn">
+    <h2>Sign in</h2>
+    <p class="hint">Your lists live on this device.</p>
+    <div class="card ticks">
+      <label for="authEmail">Email</label>
+      <input class="well mono" id="authEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      <div class="helper" id="authEmailHelper" aria-live="polite"></div>
+      <label for="authPassword">Password</label>
+      <input class="well mono" id="authPassword" type="password" autocomplete="current-password">
+      <div class="helper" id="authPasswordHelper" aria-live="polite"></div>
+      <div class="helper">Accounts on this device only. Nothing leaves your phone.</div>
+      <button id="authSubmitBtn" class="btn" type="button">Sign in</button>
+      <button id="authToCreateBtn" class="btn btn--quiet" type="button">Create an account</button>
+    </div>
+  </div>
+
+  <!-- L3 · Create account -->
+  <div class="section" id="authCreate" hidden>
+    <h2>Create account</h2>
+    <p class="hint">One account keeps your items and prices.</p>
+    <div class="card ticks">
+      <label for="newName">Your name</label>
+      <input class="well" id="newName" type="text" autocomplete="name" maxlength="60">
+      <div class="helper" id="newNameHelper" aria-live="polite"></div>
+      <label for="newEmail">Email</label>
+      <input class="well mono" id="newEmail" type="email" autocomplete="email" placeholder="you@example.com">
+      <div class="helper" id="newEmailHelper" aria-live="polite"></div>
+      <label for="newPassword">Password</label>
+      <input class="well mono" id="newPassword" type="password" autocomplete="new-password">
+      <div class="helper" id="newPasswordHelper" aria-live="polite">At least 8 characters. Stored on this device only.</div>
+      <button id="createSubmitBtn" class="btn" type="button">Create account</button>
+      <button id="createToSignInBtn" class="btn btn--quiet" type="button">Back to sign in</button>
+    </div>
+  </div>
+</div>
+
+<div id="appView" hidden>
+<header>
+  <h1>Price Compare</h1>
+  <p id="headerNotice">Saved on this device. Nothing leaves your phone.</p>
+  <div class="who-row">
+    <span id="whoRow" class="code"></span>
+    <button id="signOutBtn" class="btn btn--quiet btn--leave" type="button">Sign out</button>
+  </div>
+</header>
+
+<!-- S1 · Compare: item ledger, whole card is the button, winner in rust + star -->
+<div class="section" id="secList">
+  <h2>Compare</h2>
+  <p class="hint">Every item with each supplier’s price (RM). The rust price marks the cheapest source.</p>
+  <div id="itemList" class="item-list"></div>
+  <button id="addBtn" class="btn" type="button">+ Add Item</button>
+</div>
+
+<!-- S2 · Add/Edit item: spec-sheet form, inline validation, never alert() -->
+<div class="section" id="secItem" hidden>
+  <h2 id="itemFormTitle">Add item</h2>
+  <p class="hint">Name it, then enter prices.</p>
+  <div class="card ticks">
+    <div class="form-tag">
+      <span class="label">Item</span>
+      <span class="code" id="itemFormCode">ITM-000</span>
+    </div>
+    <label for="itemName">Item name</label>
+    <input class="well" id="itemName" type="text" autocomplete="off" maxlength="60">
+    <div class="helper" id="itemNameHelper" aria-live="polite"></div>
+    <label>Category</label>
+    <div class="seg" role="radiogroup" aria-label="Category">
+      <input type="radio" name="itemCategory" id="catGrocery" value="Grocery">
+      <label for="catGrocery">Grocery</label>
+      <input type="radio" name="itemCategory" id="catProduce" value="Produce">
+      <label for="catProduce">Produce</label>
+      <input type="radio" name="itemCategory" id="catHousehold" value="Household">
+      <label for="catHousehold">Household</label>
+    </div>
+    <button id="itemSaveBtn" class="btn" type="button">Save item</button>
+    <button id="itemCancelBtn" class="btn btn--quiet" type="button">Cancel</button>
+  </div>
+</div>
+
+<!-- S2 · Price entry: wells on a ticked well, live Lowest band -->
+<div class="section" id="secEntry">
+  <h2>Prices</h2>
+  <p class="hint">Type a price for each supplier. The rust border and corner ticks mark the cheapest as you go.</p>
+  <div id="selName">No item selected</div>
+  <div class="card ticks" id="entryCard">
+    <div class="price-grid" id="priceGrid"></div>
+  </div>
+  <div class="band" id="lowestBand" hidden>
+    <span class="band-lbl">Lowest</span>
+    <span class="band-val mono" id="lowestVal"></span>
+  </div>
+  <p class="note">Prices are in ringgit (RM).</p>
+</div>
+
+<!-- S3 · Winners: hairline table, totals band, copy action -->
+<div class="section" id="secResult">
+  <h2>Winners</h2>
+  <p class="hint">The cheapest source, item by item.</p>
+  <div class="card" id="resultList"></div>
+  <div class="band" id="totalBand" hidden>
+    <span class="band-lbl">Total if you buy cheapest</span>
+    <span class="band-val mono" id="totalVal"></span>
+  </div>
+  <button id="copyBtn" class="btn btn--quiet" type="button" hidden>Copy list</button>
+</div>
+
+<!-- S5 · Catalog: search over items, tap opens price entry -->
+<div class="section" id="secCatalog" hidden>
+  <h2>Catalog</h2>
+  <p class="hint">Every item you have priced. Tap one to enter prices.</p>
+  <div class="searchrow">
+    <input class="well" id="catalogSearch" type="search" aria-label="Search items" placeholder="Search items" autocomplete="off">
+  </div>
+  <div class="cat-grid" id="catGrid"></div>
+  <div class="card empty" id="catNoMatch" hidden>
+    <p class="lead">No item matches</p>
+    <p class="why">Add it and price it in one go.</p>
+    <button id="catAddBtn" class="btn btn--quiet" type="button"></button>
+  </div>
+</div>
+
+<!-- Users · ledger, manage, invite (owner only; hidden from viewers) -->
+<div class="section" id="secUsers" hidden>
+  <h2>Users</h2>
+  <p class="hint">Who can sign in on this device.</p>
+  <div class="card" id="userLedger"></div>
+
+  <!-- U3 · invite -->
+  <div id="inviteForm" hidden>
+    <h3>Invite user</h3>
+    <p class="hint">They sign in on this device with it. This demo creates the account locally, no email is sent.</p>
+    <div class="card ticks">
+      <label for="inviteName">Their name</label>
+      <input class="well" id="inviteName" type="text" autocomplete="off" maxlength="60">
+      <div class="helper" id="inviteNameHelper" aria-live="polite"></div>
+      <label for="inviteEmail">Email</label>
+      <input class="well mono" id="inviteEmail" type="email" autocomplete="off" placeholder="they@example.com">
+      <div class="helper" id="inviteEmailHelper" aria-live="polite"></div>
+      <label for="invitePassword">Password</label>
+      <input class="well mono" id="invitePassword" type="text" autocomplete="off">
+      <div class="helper" id="invitePasswordHelper" aria-live="polite">At least 8 characters. Share it with them yourself.</div>
+      <label>Role</label>
+      <div class="seg" role="radiogroup" aria-label="Invite role">
+        <input type="radio" name="inviteRole" id="invEditor" value="editor" checked>
+        <label for="invEditor">Editor</label>
+        <input type="radio" name="inviteRole" id="invViewer" value="viewer">
+        <label for="invViewer">Viewer</label>
+      </div>
+      <div class="helper">Editor: add items and enter prices. Viewer: read only.</div>
+      <button id="inviteSubmitBtn" class="btn" type="button">Create account for them</button>
+      <button id="inviteCancelBtn" class="btn btn--quiet" type="button">Cancel</button>
+    </div>
+  </div>
+
+  <button id="inviteOpenBtn" class="btn" type="button">+ Invite user</button>
+
+  <!-- U2 · manage one user -->
+  <div id="manageForm" hidden>
+    <h3 id="manageName">User</h3>
+    <p class="hint mono" id="manageEmail"></p>
+    <div class="card ticks">
+      <label>Role</label>
+      <div class="seg" role="radiogroup" aria-label="User role">
+        <input type="radio" name="manageRole" id="mgOwner" value="owner">
+        <label for="mgOwner">Owner</label>
+        <input type="radio" name="manageRole" id="mgEditor" value="editor">
+        <label for="mgEditor">Editor</label>
+        <input type="radio" name="manageRole" id="mgViewer" value="viewer">
+        <label for="mgViewer">Viewer</label>
+      </div>
+      <div class="helper">Editor: add items and enter prices. Viewer: read only.</div>
+      <button id="manageSaveBtn" class="btn" type="button">Save role</button>
+      <button id="manageRemoveBtn" class="btn btn--danger" type="button">Remove user</button>
+      <button id="manageCloseBtn" class="btn btn--quiet" type="button">Back to users</button>
+    </div>
+  </div>
+</div>
+
+<!-- S6 · Suppliers: rename, swatch, add; prices arrays migrate on change -->
+<div class="section" id="secSuppliers" hidden>
+  <h2>Suppliers</h2>
+  <p class="hint">Who you buy from. Renaming keeps every item’s prices in place.</p>
+  <div class="card" id="supplierLedger"></div>
+
+  <div id="supplierForm" hidden>
+    <h3 id="supplierFormTitle">Add supplier</h3>
+    <p class="hint" id="supplierFormHint">New suppliers start unpriced for every item.</p>
+    <div class="card ticks">
+      <label for="supplierName">Supplier name</label>
+      <input class="well" id="supplierName" type="text" autocomplete="off" maxlength="60">
+      <div class="helper" id="supplierNameHelper" aria-live="polite"></div>
+      <label>Colour</label>
+      <div class="swatch-row" role="radiogroup" aria-label="Supplier colour" id="swatchRow"></div>
+      <div class="helper">Colours appear only here, next to each supplier’s name.</div>
+      <button id="supplierSaveBtn" class="btn" type="button">Save supplier</button>
+      <button id="supplierCancelBtn" class="btn btn--quiet" type="button">Cancel</button>
+    </div>
+  </div>
+
+  <button id="supplierAddBtn" class="btn" type="button">+ Add supplier</button>
+
+  <button id="clearDataBtn" class="btn btn--danger" type="button">Clear all data</button>
+  <p class="note" id="clearNote" hidden>Your items are back to the sample list. Suppliers and accounts stay.</p>
+</div>
+
+<nav class="app-nav" id="appNav" aria-label="Screens"></nav>
+
+</div>
+
+<script>
+  // SUPPLIERS now loads from spc-suppliers.v1 (see the S6 section below)
+  // Retired with the purple/yellow system: supplier identity is mono codes now.
+  // Kept only so old references do not break; S1 styling no longer reads it.
+  const COLORS = [];
+
+  // ---- Persistence: spc.v1 — items + selected, debounced 300ms, validated on load ----
+  const ITEMS_KEY = "spc.v1";
+  const SAMPLE_ITEMS = [
+    { name: "Beras Wangi 5kg", category: "Grocery", prices: [32.50, 29.90, 31.20] },
+    { name: "Minyak Masak 5L", category: "Grocery", prices: [38.00, 42.50, 36.90] },
+    { name: "Serai 1kg (Lemongrass)", category: "Produce", prices: [8.50, 6.20, 7.80] }
+  ];
+
+  function validItems(v) {
+    return Array.isArray(v) && v.every(it =>
+      it && typeof it.name === "string" &&
+      typeof it.category === "string" &&
+      Array.isArray(it.prices) && it.prices.every(p => typeof p === "string" || typeof p === "number"));
+  }
+
+  function loadItems() {
+    const saved = loadJSON(ITEMS_KEY, null);
+    if (validItems(saved)) return saved;
+    return SAMPLE_ITEMS.map(it => ({ ...it, prices: [...it.prices] })); // fresh copies so sample edits never mutate the constant
+  }
+
+  let items = loadItems();
+  let selected = 0;
+
+  let saveTimer = null;
+  function scheduleSave() {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      saveJSON(ITEMS_KEY, items);
+    }, 300);
+  }
+
+  function clearAllData() {
+    localStorage.removeItem(ITEMS_KEY);
+    items = SAMPLE_ITEMS.map(it => ({ ...it, prices: [...it.prices] }));
+    selected = 0;
+    render();
+    const me = signedInUser();
+    if (me) applyRole(me);
+  }
+
+  const fmt = n => "RM " + Number(n).toFixed(2);
+  const supCode = i => "SUP-0" + (i + 1);
+  const validPrice = v => { const f = parseFloat(v); return !isNaN(f) && f >= 0; };
+
+  function cheapestOf(item) {
+    let idx = -1, min = Infinity;
+    // Tie-break: strict < keeps the FIRST supplier in index order on equal prices (T3).
+    item.prices.forEach((p, i) => {
+      const v = parseFloat(p);
+      if (!isNaN(v) && v >= 0 && v < min) { min = v; idx = i; }
+    });
+    return idx;
+  }
+
+  function render() {
+    // viewer wells stay disabled across re-renders
+    const me = signedInUser();
+    const readOnly = !!me && me.role === "viewer";
+    // Section 1
+    const list = document.getElementById("itemList");
+    list.innerHTML = "";
+    items.forEach((item, i) => {
+      const win = cheapestOf(item);
+      const row = document.createElement("button");
+      row.type = "button";
+      row.className = "item-row" + (i === selected ? " selected" : "");
+      row.setAttribute("aria-pressed", i === selected ? "true" : "false");
+      row.innerHTML = `<span class="tag">ITM-0${i + 1} · ${SUPPLIERS.length} suppliers</span>
+        <span class="name">${item.name}</span><span class="prices"></span>`;
+      const pc = row.querySelector(".prices");
+      SUPPLIERS.forEach((s, j) => {
+        const chip = document.createElement("span");
+        const ok = validPrice(item.prices[j]);
+        chip.className = "chip" + (j === win ? " win" : "") + (ok ? "" : " empty");
+        chip.innerHTML = `<span class="sup">${s}</span><span class="amt">${ok ? fmt(item.prices[j]) : "none yet"}</span>`;
+        pc.appendChild(chip);
+      });
+      row.addEventListener("click", () => { selected = i; render(); });
+      list.appendChild(row);
+    });
+
+    // Section 2
+  // S2: fill wells for the selected item
+  const item = items[selected];
+  document.getElementById("selName").textContent = item ? item.name : "No item selected";
+  const grid = document.getElementById("priceGrid");
+  grid.innerHTML = "";
+  const win = item ? cheapestOf(item) : -1;
+  SUPPLIERS.forEach((s, j) => {
+    const f = document.createElement("div");
+    f.className = "price-field";
+    f.innerHTML = `<label>${s} <span class="code">${supCode(j)}</span></label>`;
+    const inp = document.createElement("input");
+    inp.type = "number";
+    inp.step = "0.01";
+    inp.min = "0";
+    inp.inputMode = "decimal";
+    inp.value = item ? item.prices[j] : "";
+    if (j === win) inp.classList.add("cheapest");
+    inp.addEventListener("input", () => {
+      items[selected].prices[j] = inp.value;
+      scheduleSave();
+      renderInputsOnly();
+    });
+    if (readOnly) { inp.disabled = true; inp.readOnly = true; }
+    f.appendChild(inp);
+    grid.appendChild(f);
+  });
+  renderLowestBand(item, win);
+
+  // S3
+  renderResults();
+  }
+
+  // On every keystroke: refresh highlights + bands without rebuilding inputs (keeps focus)
+  function renderInputsOnly() {
+    const item = items[selected];
+    const win = cheapestOf(item);
+    const inputs = document.querySelectorAll("#priceGrid input");
+    inputs.forEach((inp, j) => inp.classList.toggle("cheapest", j === win));
+    document.querySelectorAll("#itemList .item-row").forEach((row, i) => {
+      const w = cheapestOf(items[i]);
+      row.querySelectorAll(".chip").forEach((chip, j) => chip.classList.toggle("win", j === w));
+    });
+    renderLowestBand(item, win);
+    renderResults();
+  }
+
+  // Live "Lowest" strip under the entry wells
+  function renderLowestBand(item, win) {
+    const band = document.getElementById("lowestBand");
+    const val = document.getElementById("lowestVal");
+    if (!item || win < 0) { band.hidden = true; return; }
+    band.hidden = false;
+    val.textContent = fmt(item.prices[win]) + " · " + supCode(win);
+    val.classList.add("is-win");
+  }
+
+  // S3 winners table + totals band (shared by render and renderInputsOnly)
+  function renderResults() {
+    const res = document.getElementById("resultList");
+    res.innerHTML = "";
+    let total = 0, any = false;
+    items.forEach(it => {
+      const w = cheapestOf(it);
+      const div = document.createElement("div");
+      div.className = "result-row " + (w >= 0 ? "cheapest" : "plain");
+      const who = w >= 0 ? SUPPLIERS[w] + ` <span class="code">${supCode(w)}</span>` : "No valid price";
+      div.innerHTML = `<span class="who">${it.name}<small>${who}</small></span>
+        <span class="amt">${w >= 0 ? fmt(it.prices[w]) : "none yet"}</span>`;
+      if (w >= 0) { total += parseFloat(it.prices[w]); any = true; }
+      res.appendChild(div);
+    });
+    const band = document.getElementById("totalBand");
+    const copy = document.getElementById("copyBtn");
+    if (!any) { band.hidden = true; copy.hidden = true; return; }
+    band.hidden = false;
+    copy.hidden = false;
+    document.getElementById("totalVal").textContent = fmt(total);
+  }
+
+  // Copy-list: the winners as plain text, confirmed by the button itself
+  document.getElementById("copyBtn").addEventListener("click", () => {
+    const lines = items.map(it => {
+      const w = cheapestOf(it);
+      return w >= 0 ? `${it.name}: ${SUPPLIERS[w]}, ${fmt(it.prices[w])}` : `${it.name}: none yet`;
+    });
+    const total = items.reduce((t, it) => {
+      const w = cheapestOf(it);
+      return w >= 0 ? t + parseFloat(it.prices[w]) : t;
+    }, 0);
+    const text = lines.join("\n") + (total > 0 ? `\nTotal: ${fmt(total)}` : "");
+    const btn = document.getElementById("copyBtn");
+    const done = () => {
+      btn.classList.add("copied");
+      btn.textContent = "Copied";
+      setTimeout(() => { btn.classList.remove("copied"); btn.textContent = "Copy list"; }, 1600);
+    };
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(done);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.value = text;
+      document.body.appendChild(ta);
+      ta.select();
+      document.execCommand("copy");
+      ta.remove();
+      done();
+    }
+  });
+
+  // ---- S2 · Add/Edit item form ----
+  // itemFormState: null (closed) | { editing: index | -1 } — -1 means a new item
+  let itemFormState = null;
+
+  function openItemForm(editing) {
+    itemFormState = { editing };
+    const sec = document.getElementById("secItem");
+    const nameIn = document.getElementById("itemName");
+    const helper = document.getElementById("itemNameHelper");
+    const title = document.getElementById("itemFormTitle");
+    const code = document.getElementById("itemFormCode");
+    document.getElementById("itemSaveBtn").disabled = false;
+    if (editing >= 0) {
+      title.textContent = "Edit item";
+      code.textContent = "ITM-0" + (editing + 1);
+      nameIn.value = items[editing].name;
+      const cat = items[editing].category || "Grocery";
+      const radio = document.querySelector(`input[name="itemCategory"][value="${cat}"]`);
+      if (radio) radio.checked = true;
+    } else {
+      title.textContent = "Add item";
+      code.textContent = "ITM-0" + (items.length + 1);
+      nameIn.value = "";
+      const first = document.getElementById("catGrocery");
+      if (first) first.checked = true;
+    }
+    helper.textContent = "";
+    helper.classList.remove("err");
+    nameIn.setAttribute("aria-invalid", "false");
+    sec.hidden = false;
+    render();
+    nameIn.focus();
+    sec.scrollIntoView({ behavior: "smooth" });
+  }
+
+  function closeItemForm() {
+    itemFormState = null;
+    document.getElementById("secItem").hidden = true;
+  }
+
+  function saveItemForm() {
+    const nameIn = document.getElementById("itemName");
+    const helper = document.getElementById("itemNameHelper");
+    const name = nameIn.value.trim();
+    if (!name) {
+      helper.textContent = "Give the item a name before saving.";
+      helper.classList.add("err");
+      nameIn.setAttribute("aria-invalid", "true");
+      nameIn.focus();
+      return;
+    }
+    const catRadio = document.querySelector('input[name="itemCategory"]:checked');
+    const category = catRadio ? catRadio.value : "Grocery";
+    if (itemFormState.editing >= 0) {
+      items[itemFormState.editing].name = name;
+      items[itemFormState.editing].category = category;
+    } else {
+      items.push({ name, category, prices: [10.00, 9.50, 11.00] });
+      selected = items.length - 1;
+    }
+    scheduleSave();
+    closeItemForm();
+    render();
+  document.getElementById("secEntry").scrollIntoView({ behavior: "smooth" });
+}
+
+  // ---- Catalog render + search ----
+  function renderCatalog() {
+    const grid = document.getElementById("catGrid");
+    const noMatch = document.getElementById("catNoMatch");
+    const addBtn = document.getElementById("catAddBtn");
+    const q = document.getElementById("catalogSearch").value.trim().toLowerCase();
+    grid.innerHTML = "";
+    const matches = items.map((item, i) => ({ item, i }))
+      .filter(({ item }) => !q || item.name.toLowerCase().includes(q));
+    noMatch.hidden = !(q && matches.length === 0);
+    if (q && matches.length === 0) {
+      addBtn.textContent = "+ Add \u201C" + document.getElementById("catalogSearch").value.trim() + "\u201D";
+    }
+    matches.forEach(({ item, i }) => {
+      const win = cheapestOf(item);
+      const card = document.createElement("button");
+      card.type = "button";
+      card.className = "cat-card";
+      card.innerHTML = `<span class="code">ITM-0${i + 1}</span>
+        <div class="nm">${item.name}</div>
+        <div class="bs">${win >= 0 ? "best · <strong>" + supCode(win) + " " + fmt(item.prices[win]) + "</strong>" : "none yet"}</div>`;
+      card.addEventListener("click", () => {
+        selected = i;
+        navigate("compare");
+        render();
+        document.getElementById("secEntry").scrollIntoView({ behavior: "smooth" });
+      });
+      grid.appendChild(card);
+    });
+  }
+
+  document.getElementById("catalogSearch").addEventListener("input", renderCatalog);
+  document.getElementById("catAddBtn").addEventListener("click", () => {
+    const term = document.getElementById("catalogSearch").value.trim();
+    navigate("compare");
+    openItemForm(-1);
+    if (term) {
+      const nameIn = document.getElementById("itemName");
+      nameIn.value = term;
+      // openItemForm cleared helpers; keep them clean for a valid prefill
+      setHelper("itemNameHelper", "");
+    }
+  });
+
+  // ---- S6 · Suppliers: dynamic store, colour swatches, prices migration ----
+  // spc-suppliers.v1: [{ name, colour }] — the sole source of SUPPLIERS after first save
+  const SUPPLIERS_KEY = "spc-suppliers.v1";
+  const SWATCH_SET = ["oklch(62% 0.19 15)", "oklch(55% 0.10 235)", "oklch(40% 0.13 300)", "oklch(60% 0.14 145)", "oklch(70% 0.13 80)", "oklch(45% 0.12 200)"];
+
+  function loadSuppliers() {
+    const saved = loadJSON(SUPPLIERS_KEY, null);
+    if (saved && Array.isArray(saved) && saved.length) return saved;
+    return [
+      { name: "Klang Import Sdn Bhd", colour: SWATCH_SET[0] },
+      { name: "Pasar Malam Trading", colour: SWATCH_SET[1] },
+      { name: "JB Wholesale", colour: SWATCH_SET[2] }
+    ];
+  }
+
+  let SUPPLIER_META = loadSuppliers();
+  let SUPPLIERS = SUPPLIER_META.map(s => s.name);
+
+  function persistSuppliers() {
+    saveJSON(SUPPLIERS_KEY, SUPPLIER_META);
+    SUPPLIERS = SUPPLIER_META.map(s => s.name);
+  }
+
+  // Keep every item's prices indexed to SUPPLIERS.length on any change
+  function migrateItems(newLength) {
+    items.forEach(item => {
+      while (item.prices.length < newLength) item.prices.push("");
+      if (item.prices.length > newLength) item.prices = item.prices.slice(0, newLength);
+    });
+    if (items.length) selected = Math.min(selected, items.length - 1);
+  }
+
+  let supplierEditing = -1; // -1 = adding
+
+  function renderSuppliers() {
+    const ledger = document.getElementById("supplierLedger");
+    ledger.innerHTML = "";
+    SUPPLIER_META.forEach((s, i) => {
+      const row = document.createElement("div");
+      row.className = "supplier-row";
+      const wins = items.filter(it => cheapestOf(it) === i).length;
+      row.innerHTML = `<span class="nm"><span class="sw" style="background:${s.colour}"></span><span class="nm-text">${s.name}</span></span>
+        <span class="wins">${wins} wins</span>
+        <button class="btn btn--quiet" type="button" data-idx="${i}">Edit</button>`;
+      row.querySelector("button").addEventListener("click", () => openSupplierForm(i));
+      ledger.appendChild(row);
+    });
+  }
+
+  function openSupplierForm(idx) {
+    supplierEditing = idx;
+    const form = document.getElementById("supplierForm");
+    const nameIn = document.getElementById("supplierName");
+    document.getElementById("supplierFormTitle").textContent = idx >= 0 ? "Edit supplier" : "Add supplier";
+    document.getElementById("supplierFormHint").textContent = idx >= 0
+      ? "Renaming keeps every item’s prices in place."
+      : "New suppliers start unpriced for every item.";
+    nameIn.value = idx >= 0 ? SUPPLIER_META[idx].name : "";
+    setHelper("supplierNameHelper", "");
+    buildSwatchRow(idx >= 0 ? SUPPLIER_META[idx].colour : SWATCH_SET[SUPPLIER_META.length % SWATCH_SET.length]);
+    document.getElementById("supplierAddBtn").hidden = true;
+    form.hidden = false;
+    nameIn.focus();
+  }
+
+  function closeSupplierForm() {
+    supplierEditing = -1;
+    document.getElementById("supplierForm").hidden = true;
+    document.getElementById("supplierAddBtn").hidden = false;
+  }
+
+  function buildSwatchRow(selectedColour) {
+    const row = document.getElementById("swatchRow");
+    row.innerHTML = "";
+    SWATCH_SET.forEach((c, i) => {
+      const id = "swatchOpt" + i;
+      const input = document.createElement("input");
+      input.type = "radio";
+      input.name = "supplierColour";
+      input.id = id;
+      input.value = c;
+      if (c === selectedColour) input.checked = true;
+      const label = document.createElement("label");
+      label.setAttribute("for", id);
+      label.style.background = c;
+      row.appendChild(input);
+      row.appendChild(label);
+    });
+  }
+
+  document.getElementById("supplierAddBtn").addEventListener("click", () => openSupplierForm(-1));
+  document.getElementById("supplierCancelBtn").addEventListener("click", closeSupplierForm);
+
+  document.getElementById("supplierSaveBtn").addEventListener("click", () => {
+    const nameIn = document.getElementById("supplierName");
+    const name = nameIn.value.trim();
+    if (!name) {
+      setHelper("supplierNameHelper", "Give the supplier a name.", true);
+      nameIn.focus();
+      return;
+    }
+    const colourInput = document.querySelector('input[name="supplierColour"]:checked');
+    const colour = colourInput ? colourInput.value : SWATCH_SET[0];
+    if (supplierEditing >= 0) {
+      SUPPLIER_META[supplierEditing].name = name;
+      SUPPLIER_META[supplierEditing].colour = colour;
+      persistSuppliers(); // rename: prices arrays untouched, indexes stable
+    } else {
+      SUPPLIER_META.push({ name, colour });
+      persistSuppliers();
+      migrateItems(SUPPLIERS.length); // every item gains an unpriced slot
+    }
+    closeSupplierForm();
+    renderSuppliers();
+    render();
+    const me = signedInUser();
+    if (me) { applyRole(me); renderUsers(me); }
+  });
+
+  // ---- Navigation: hash-routed screens ----
+  const SCREENS = {
+    compare: { el: "secList", nav: "Compare" },
+    entry:   { el: "secEntry", nav: "Compare" },
+    winners: { el: "secResult", nav: "Winners" },
+    catalog: { el: "secCatalog", nav: "Catalog" },
+    suppliers: { el: "secSuppliers", nav: "Suppliers" },
+    users:   { el: "secUsers", nav: "Users", ownerOnly: true }
+  };
+  // sections that only show with their route; entry always shows under compare
+  const ROUTED = ["secList", "secResult", "secCatalog", "secSuppliers", "secUsers"];
+
+  function currentRoute() {
+    const h = location.hash.replace("#/", "");
+    return SCREENS[h] ? h : "compare";
+  }
+
+  function navigate(route) {
+    const user = signedInUser();
+    if (route === "users" && (!user || user.role === "viewer")) route = "compare";
+    if (location.hash !== "#/" + route) location.hash = "#/" + route;
+    showRoute(route);
+  }
+
+  function showRoute(route) {
+    // viewers never reach the users screen, even by deep link
+    const me = signedInUser();
+    if (route === "users" && (!me || me.role !== "owner")) {
+      history.replaceState(null, "", "#/compare");
+      route = "compare";
+    }
+    const show = SCREENS[route].el;
+    ROUTED.forEach(id => document.getElementById(id).hidden = id !== show);
+    // the entry section lives under compare; item form is its own overlay, leave as-is
+    document.querySelectorAll(".app-nav button").forEach(b =>
+      b.setAttribute("aria-current", b.dataset.route === SCREENS[route].nav.toLowerCase() || (route === "entry" && b.dataset.route === "compare") ? "page" : "false"));
+    if (route === "catalog") renderCatalog();
+    if (route === "suppliers") renderSuppliers();
+    if (route === "users") { if (me) renderUsers(me); }
+    window.scrollTo(0, 0);
+  }
+
+  function buildNav(user) {
+    const nav = document.getElementById("appNav");
+    nav.innerHTML = "";
+    const tabs = [
+      { route: "compare", label: "Compare" },
+      { route: "winners", label: "Winners" },
+      { route: "catalog", label: "Catalog" },
+      { route: "suppliers", label: "Suppliers" },
+      { route: "users", label: "Users", ownerOnly: true }
+    ];
+    tabs.forEach(t => {
+      if (t.ownerOnly && user.role !== "owner") return; // viewers see no Users tab
+      const b = document.createElement("button");
+      b.type = "button";
+      b.textContent = t.label;
+      b.dataset.route = t.route;
+      b.addEventListener("click", () => navigate(t.route));
+      nav.appendChild(b);
+    });
+  }
+
+  window.addEventListener("hashchange", () => showRoute(currentRoute()));
+
+  document.getElementById("addBtn").addEventListener("click", () => openItemForm(-1));
+  document.getElementById("itemSaveBtn").addEventListener("click", saveItemForm);
+  document.getElementById("itemCancelBtn").addEventListener("click", closeItemForm);
+  document.getElementById("itemName").addEventListener("input", () => {
+    const helper = document.getElementById("itemNameHelper");
+    helper.textContent = "";
+    helper.classList.remove("err");
+    document.getElementById("itemName").setAttribute("aria-invalid", "false");
+  });
+
+  // ---- Auth gate: demo auth, everything stays on this device ----
+  // spc-auth.v1: { users: [{ name, email, salt, hash, role }] }
+  // spc-session.v1: { email } — the signed-in user on this device
+  const AUTH_KEY = "spc-auth.v1";
+  const SESSION_KEY = "spc-session.v1";
+
+  function loadJSON(key, fallback) {
+    try { return JSON.parse(localStorage.getItem(key)) || fallback; }
+    catch { return fallback; }
+  }
+  function saveJSON(key, value) { localStorage.setItem(key, JSON.stringify(value)); }
+
+  // SHA-256 salted hash via the platform crypto — demo grade, device-only threat model
+  async function hashPassword(password, salt) {
+    const data = new TextEncoder().encode(salt + ":" + password);
+    const digest = await crypto.subtle.digest("SHA-256", data);
+    return Array.from(new Uint8Array(digest)).map(b => b.toString(16).padStart(2, "0")).join("");
+  }
+
+  function currentSession() { return loadJSON(SESSION_KEY, null); }
+  function authStore() { return loadJSON(AUTH_KEY, { users: [] }); }
+
+  function signedInUser() {
+    const session = currentSession();
+    if (!session) return null;
+    return authStore().users.find(u => u.email === session.email) || null;
+  }
+
+  function signOut() {
+    localStorage.removeItem(SESSION_KEY);
+    showAppropriateView();
+  }
+
+  function setHelper(id, message, isError) {
+    const el = document.getElementById(id);
+    el.textContent = message || "";
+    el.classList.toggle("err", !!isError);
+  }
+
+  function setBusy(btnId, busy, labelWhenBusy) {
+    const btn = document.getElementById(btnId);
+    btn.disabled = busy;
+    btn.setAttribute("aria-busy", busy ? "true" : "false");
+    if (busy) {
+      btn.dataset.label = btn.textContent;
+      btn.textContent = "";
+      const spin = document.createElement("span");
+      spin.className = "spin";
+      spin.setAttribute("aria-hidden", "true");
+      btn.appendChild(spin);
+      btn.appendChild(document.createTextNode(" " + labelWhenBusy));
+    } else if (btn.dataset.label) {
+      btn.textContent = btn.dataset.label;
+    }
+  }
+
+  function showAppropriateView() {
+    const auth = document.getElementById("authView");
+    const app = document.getElementById("appView");
+    const user = signedInUser();
+    auth.hidden = !!user;
+    app.hidden = !user;
+    // sign-out must not reopen the create pane with stale fields; default to sign-in
+    if (!user) showAuthPane("signin");
+    if (user) {
+      document.getElementById("whoRow").textContent = user.name + " · " + user.role;
+      applyRole(user);
+      renderUsers(user);
+      buildNav(user);
+      showRoute(currentRoute());
+    }
+  }
+
+  // ---- Role enforcement: viewer is read-only, never colour alone ----
+  function applyRole(user) {
+    const readOnly = user.role === "viewer";
+    document.getElementById("appView").classList.toggle("app-readonly", readOnly);
+    document.getElementById("addBtn").disabled = readOnly;
+    document.getElementById("copyBtn").disabled = readOnly;
+    const secUsers = document.getElementById("secUsers");
+    secUsers.hidden = readOnly; // users screen is owner-only material
+    const note = document.getElementById("readonlyNote");
+    if (note) note.hidden = !readOnly;
+    document.getElementById("headerNotice").textContent = readOnly
+      ? "Read-only access. Ask an editor to change prices."
+      : "Saved on this device. Nothing leaves your phone.";
+    // price wells are rebuilt by render(); disable the current ones too
+    document.querySelectorAll("#priceGrid input").forEach(inp => {
+      inp.disabled = readOnly;
+      inp.readOnly = readOnly;
+    });
+    // item form is editor territory; its save button follows the same rule
+    document.getElementById("itemSaveBtn").disabled = readOnly;
+  }
+
+  // ---- Users screens (owner only) ----
+  let managingEmail = null;
+
+  function renderUsers(me) {
+    const sec = document.getElementById("secUsers");
+    if (me.role !== "owner") { sec.hidden = true; return; }
+    sec.hidden = false;
+    const ledger = document.getElementById("userLedger");
+    ledger.innerHTML = "";
+    authStore().users.forEach(u => {
+      const row = document.createElement("div");
+      row.className = "user-row";
+      const isMe = u.email === me.email;
+      const badge = u.role === me.role ? "badge on" : "badge";
+      const btn = isMe
+        ? `<span class="code">you</span>`
+        : `<button class="btn btn--quiet" type="button" data-email="${u.email}" data-name="${u.name}">Manage</button>`;
+      row.innerHTML = `<span class="who"><span class="nm">${u.name}<span class="${badge}">${u.role}</span></span><br><span class="rl code">${u.email}</span></span>${btn}`;
+      ledger.appendChild(row);
+    });
+    ledger.querySelectorAll("button[data-email]").forEach(b =>
+      b.addEventListener("click", () => openManage(b.dataset.email)));
+  }
+
+  function openManage(email) {
+    managingEmail = email;
+    const u = authStore().users.find(x => x.email === email);
+    if (!u) return;
+    const me = signedInUser();
+    document.getElementById("inviteForm").hidden = true;
+    document.getElementById("inviteOpenBtn").hidden = true;
+    document.getElementById("manageForm").hidden = false;
+    document.getElementById("manageName").textContent = u.name;
+    document.getElementById("manageEmail").textContent = u.email;
+    const radio = document.querySelector(`input[name="manageRole"][value="${u.role}"]`);
+    if (radio) radio.checked = true;
+    // the current owner cannot demote or remove themselves
+    const isSelf = u.email === me.email;
+    const ownerRadio = document.getElementById("mgOwner");
+    ownerRadio.disabled = isSelf;
+    document.getElementById("mgEditor").disabled = false;
+    document.getElementById("mgViewer").disabled = false;
+    document.getElementById("manageRemoveBtn").disabled = isSelf;
+    const helper = document.getElementById("manageForm").querySelector(".helper");
+    helper.textContent = isSelf
+      ? "You are the signed-in owner; your own role stays owner."
+      : "Editor: add items and enter prices. Viewer: read only.";
+  }
+
+  function closeManage() {
+    managingEmail = null;
+    document.getElementById("manageForm").hidden = true;
+    document.getElementById("inviteOpenBtn").hidden = false;
+  }
+
+  document.getElementById("manageSaveBtn").addEventListener("click", () => {
+    if (!managingEmail) return;
+    const roleRadio = document.querySelector('input[name="manageRole"]:checked');
+    if (!roleRadio) return;
+    const store = authStore();
+    const u = store.users.find(x => x.email === managingEmail);
+    if (u) u.role = roleRadio.value;
+    saveJSON(AUTH_KEY, store);
+    closeManage();
+    const me = signedInUser();
+    renderUsers(me);
+    applyRole(me);
+  });
+
+  document.getElementById("manageRemoveBtn").addEventListener("click", () => {
+    if (!managingEmail) return;
+    const btn = document.getElementById("manageRemoveBtn");
+    // one confirmation: the button itself asks, then acts
+    if (btn.dataset.armed !== "yes") {
+      btn.dataset.armed = "yes";
+      btn.textContent = "Remove for sure?";
+      setTimeout(() => { btn.dataset.armed = ""; btn.textContent = "Remove user"; }, 3000);
+      return;
+    }
+    btn.dataset.armed = "";
+    btn.textContent = "Remove user";
+    const store = authStore();
+    store.users = store.users.filter(u => u.email !== managingEmail);
+    saveJSON(AUTH_KEY, store);
+    closeManage();
+    renderUsers(signedInUser());
+  });
+
+  document.getElementById("manageCloseBtn").addEventListener("click", closeManage);
+
+  document.getElementById("inviteOpenBtn").addEventListener("click", () => {
+    closeManage();
+    document.getElementById("inviteOpenBtn").hidden = true;
+    document.getElementById("inviteForm").hidden = false;
+    setHelper("inviteNameHelper", "");
+    setHelper("inviteEmailHelper", "");
+    setHelper("invitePasswordHelper", "At least 8 characters. Share it with them yourself.");
+    document.getElementById("inviteName").focus();
+  });
+
+  document.getElementById("inviteCancelBtn").addEventListener("click", () => {
+    document.getElementById("inviteForm").hidden = true;
+    document.getElementById("inviteOpenBtn").hidden = false;
+  });
+
+  document.getElementById("inviteSubmitBtn").addEventListener("click", async () => {
+    const name = document.getElementById("inviteName").value.trim();
+    const email = document.getElementById("inviteEmail").value.trim().toLowerCase();
+    const password = document.getElementById("invitePassword").value;
+    let bad = false;
+    if (!name) { setHelper("inviteNameHelper", "Give them a name.", true); bad = true; } else setHelper("inviteNameHelper", "");
+    if (!/^\S+@\S+\.\S+$/.test(email)) { setHelper("inviteEmailHelper", "That email does not look complete.", true); bad = true; } else setHelper("inviteEmailHelper", "");
+    if (password.length < 8) { setHelper("invitePasswordHelper", "At least 8 characters. Share it with them yourself.", true); bad = true; } else setHelper("invitePasswordHelper", "");
+    if (bad) return;
+    const store = authStore();
+    if (store.users.some(u => u.email === email)) {
+      setHelper("inviteEmailHelper", "An account with this email already exists on this device.", true);
+      return;
+    }
+    setBusy("inviteSubmitBtn", true, "Creating");
+    const saltHex = Array.from(crypto.getRandomValues(new Uint8Array(16))).map(b => b.toString(16).padStart(2, "0")).join("");
+    const hash = await hashPassword(password, saltHex);
+    const roleRadio = document.querySelector('input[name="inviteRole"]:checked');
+    store.users.push({ name, email, salt: saltHex, hash, role: roleRadio ? roleRadio.value : "editor" });
+    saveJSON(AUTH_KEY, store);
+    await new Promise(r => setTimeout(r, 300));
+    setBusy("inviteSubmitBtn", false);
+    document.getElementById("inviteName").value = "";
+    document.getElementById("inviteEmail").value = "";
+    document.getElementById("invitePassword").value = "";
+    document.getElementById("inviteForm").hidden = true;
+    document.getElementById("inviteOpenBtn").hidden = false;
+    renderUsers(signedInUser());
+  });
+
+  // Clear data: arm-then-confirm, then reset items to the sample list
+  document.getElementById("clearDataBtn").addEventListener("click", () => {
+    const btn = document.getElementById("clearDataBtn");
+    if (btn.dataset.armed !== "yes") {
+      btn.dataset.armed = "yes";
+      btn.textContent = "Clear for sure?";
+      setTimeout(() => { btn.dataset.armed = ""; btn.textContent = "Clear all data"; }, 3000);
+      return;
+    }
+    btn.dataset.armed = "";
+    btn.textContent = "Clear all data";
+    clearAllData();
+    renderSuppliers();
+    const note = document.getElementById("clearNote");
+    note.hidden = false;
+    setTimeout(() => { note.hidden = true; }, 4000);
+  });
+
+  // read-only note lives under the item list
+  (function () {
+    const note = document.createElement("p");
+    note.id = "readonlyNote";
+    note.className = "readonly-note";
+    note.hidden = true;
+    note.textContent = "Read-only access: viewing only. Ask an editor to change prices.";
+    document.getElementById("secList").appendChild(note);
+  })();
+
+  function showAuthPane(pane) {
+    document.getElementById("authSignIn").hidden = pane !== "signin";
+    document.getElementById("authCreate").hidden = pane !== "create";
+  }
+
+  // L3: create account — first account becomes owner
+  document.getElementById("createSubmitBtn").addEventListener("click", async () => {
+    const name = document.getElementById("newName").value.trim();
+    const email = document.getElementById("newEmail").value.trim().toLowerCase();
+    const password = document.getElementById("newPassword").value;
+    let bad = false;
+    if (!name) { setHelper("newNameHelper", "Give us a name to greet you by.", true); bad = true; } else setHelper("newNameHelper", "");
+    if (!/^\S+@\S+\.\S+$/.test(email)) { setHelper("newEmailHelper", "That email does not look complete.", true); bad = true; } else setHelper("newEmailHelper", "");
+    if (password.length < 8) { setHelper("newPasswordHelper", "At least 8 characters. Stored on this device only.", true); bad = true; } else setHelper("newPasswordHelper", "");
+    if (bad) return;
+    const store = authStore();
+    if (store.users.some(u => u.email === email)) {
+      setHelper("newEmailHelper", "An account with this email already exists on this device. Sign in instead.", true);
+      return;
+    }
+    setBusy("createSubmitBtn", true, "Creating");
+    const salt = crypto.getRandomValues(new Uint8Array(16));
+    const saltHex = Array.from(salt).map(b => b.toString(16).padStart(2, "0")).join("");
+    const hash = await hashPassword(password, saltHex);
+    const role = store.users.length === 0 ? "owner" : "editor";
+    store.users.push({ name, email, salt: saltHex, hash, role });
+    saveJSON(AUTH_KEY, store);
+    saveJSON(SESSION_KEY, { email });
+    await new Promise(r => setTimeout(r, 300)); // the loading state is brief but visible
+    setBusy("createSubmitBtn", false);
+    showAppropriateView();
+    render();
+  });
+
+  // L1: sign in — L2 error and loading states
+  document.getElementById("authSubmitBtn").addEventListener("click", async () => {
+    const email = document.getElementById("authEmail").value.trim().toLowerCase();
+    const password = document.getElementById("authPassword").value;
+    setHelper("authEmailHelper", "");
+    setHelper("authPasswordHelper", "");
+    if (!/^\S+@\S+\.\S+$/.test(email)) {
+      setHelper("authEmailHelper", "That email does not look complete.", true);
+      return;
+    }
+    setBusy("authSubmitBtn", true, "Signing in");
+    const store = authStore();
+    const user = store.users.find(u => u.email === email);
+    await new Promise(r => setTimeout(r, 300)); // keep the loading state honest, not a flicker
+    if (!user) {
+      setBusy("authSubmitBtn", false);
+      setHelper("authPasswordHelper", "No account with this email on this device. Create one below.", true);
+      document.getElementById("authPassword").focus();
+      return;
+    }
+    const hash = await hashPassword(password, user.salt);
+    setBusy("authSubmitBtn", false);
+    if (hash !== user.hash) {
+      setHelper("authPasswordHelper", "That password does not match. Try again, or create an account.", true);
+      document.getElementById("authPassword").setAttribute("aria-invalid", "true");
+      document.getElementById("authPassword").focus();
+      return;
+    }
+    document.getElementById("authPassword").setAttribute("aria-invalid", "false");
+    saveJSON(SESSION_KEY, { email: user.email });
+    showAppropriateView();
+    render();
+  });
+
+  document.getElementById("authToCreateBtn").addEventListener("click", () => showAuthPane("create"));
+  document.getElementById("createToSignInBtn").addEventListener("click", () => showAuthPane("signin"));
+  document.getElementById("signOutBtn").addEventListener("click", signOut);
+
+  // Session gate decides the first view; render() runs only when signed in
+  showAppropriateView();
+  if (signedInUser()) render();
+</script>
+</body>
+</html>

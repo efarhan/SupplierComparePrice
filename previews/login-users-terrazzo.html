@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Login and user management previews · Terrazzo system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=Onest:wght@400;500&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Hallmark · theme: terrazzo (off-white) · scope: app · screen: Login + User management · states: default, error, loading, success, disabled, empty, full · not a ship build · v2.0.0 */
+:root {
+  --paper: oklch(96% 0.009 82); --paper-2: oklch(92% 0.012 82); --paper-3: oklch(87.5% 0.014 80);
+  --plate: oklch(99.5% 0.003 82);
+  --ink: oklch(16% 0.006 60); --ink-2: oklch(27% 0.006 60); --muted: oklch(46% 0.01 60);
+  --rule: oklch(81% 0.012 80);
+  --accent: oklch(53% 0.15 38); --accent-soft: oklch(91% 0.035 45); --accent-ink: oklch(99.5% 0.003 82); --focus: oklch(50% 0.16 38);
+  --font-display: "Syne", ui-sans-serif, sans-serif;
+  --font-body: "Onest", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --shadow-card: 14px 14px 0 var(--paper-3);
+  --shadow-hover: 14px 14px 0 var(--ink);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow-x: clip; }
+body { background: var(--paper); color: var(--ink); font: 400 16px/1.5 var(--font-body); padding: 48px 16px 96px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+.screen-label { max-width: 480px; margin: 64px auto 8px; }
+.screen-label h2 { font: 700 26px/1.05 var(--font-display); letter-spacing: -0.025em; text-wrap: balance; }
+.screen-label p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.phone { max-width: 480px; margin: 16px auto 0; padding: 24px 20px; background: var(--paper); border: 1px solid var(--rule); }
+.head { font: 700 28px/1.05 var(--font-display); letter-spacing: -0.025em; }
+.sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.card { background: var(--plate); border: 2px solid var(--ink); box-shadow: var(--shadow-card); padding: 16px; margin-top: 20px; }
+.mono { font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.code { font: 500 12px var(--font-mono); color: var(--muted); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border: 1px solid var(--ink); background: var(--ink); color: var(--plate); font: 500 16px var(--font-body); cursor: pointer; width: 100%; margin-top: 20px; }
+.btn:hover { background: var(--ink-2); }
+.btn:active { transform: translateY(1px); }
+.btn-quiet { background: transparent; color: var(--ink); }
+.btn-quiet:hover { background: var(--paper-2); }
+.btn-danger { background: transparent; color: var(--accent); border-color: var(--accent); }
+.btn-danger:hover { background: var(--accent-soft); }
+.btn[disabled] { opacity: 0.55; cursor: not-allowed; transform: none; }
+.well { border: 1px solid var(--muted); background: var(--plate); padding: 12px 14px; width: 100%; font: 500 16px var(--font-body); color: var(--ink); }
+.well:focus { outline: 2px solid var(--focus); outline-offset: -3px; border-color: var(--ink); }
+.well[aria-invalid="true"] { border-color: var(--accent); }
+label { display: block; font: 500 14px var(--font-body); color: var(--muted); margin: 16px 0 6px; }
+.helper { min-height: 20px; font-size: 13px; color: var(--muted); margin-top: 4px; }
+.helper.err { color: var(--accent); }
+.rowline { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.rowline:first-of-type { border-top: none; }
+.rowline .who .nm { font-weight: 500; }
+.rowline .who .rl { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.badge { display: inline-block; font: 500 11px var(--font-mono); padding: 2px 8px; border: 1px solid var(--rule); color: var(--muted); margin-left: 6px; }
+.badge.on { border-color: var(--accent); color: var(--accent); }
+.spin { display: inline-block; width: 14px; height: 14px; border: 2px solid var(--accent-soft); border-top-color: var(--accent); border-radius: 50%; animation: spin 900ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { * { animation: none !important; transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- L1 default -->
+<div class="screen-label"><h2>L1 · Login, default</h2><p>Demo auth, accounts live on this device only. The trust line states it before the form.</p></div>
+<div class="phone">
+  <h1 class="head">Price Compare</h1>
+  <p class="sub">Sign in to your price lists</p>
+
+  <div class="card">
+    <label for="em">Email</label>
+    <input class="well mono" id="em" type="email" autocomplete="email" value="aminah@example.com">
+    <label for="pw">Password</label>
+    <input class="well mono" id="pw" type="password" autocomplete="current-password" value="........">
+    <div class="helper">Accounts on this device only. Nothing leaves your phone.</div>
+    <button class="btn">Sign in</button>
+    <button class="btn btn-quiet">Create an account</button>
+  </div>
+</div>
+
+<!-- L2 error + loading -->
+<div class="screen-label"><h2>L2 · Login, error and loading</h2><p>Wrong password: rust border, one sentence saying what happened and what to do. Button mid-request stays labelled.</p></div>
+<div class="phone">
+  <h1 class="head">Price Compare</h1>
+  <p class="sub">Sign in to your price lists</p>
+
+  <div class="card">
+    <label for="em2">Email</label>
+    <input class="well mono" id="em2" type="email" value="aminah@example.com" aria-invalid="true" aria-describedby="pwErr">
+    <label for="pw2">Password</label>
+    <input class="well mono" id="pw2" type="password" value="........" aria-invalid="true" aria-describedby="pwErr">
+    <div class="helper err" id="pwErr">That password does not match. Try again, or create an account.</div>
+    <button class="btn" aria-busy="true"><span class="spin" aria-hidden="true"></span> Signing in</button>
+    <button class="btn btn-quiet">Create an account</button>
+  </div>
+</div>
+
+<!-- L3 create account -->
+<div class="screen-label"><h2>L3 · Create account</h2><p>Name, email, password with its rule stated up front. Success returns to the sign-in card.</p></div>
+<div class="phone">
+  <h1 class="head">Create account</h1>
+  <p class="sub">One account keeps your items and prices</p>
+
+  <div class="card">
+    <label for="nm3">Your name</label>
+    <input class="well" id="nm3" autocomplete="name" value="Aminah">
+    <label for="em3">Email</label>
+    <input class="well mono" id="em3" type="email" autocomplete="email" placeholder="you@example.com">
+    <label for="pw3">Password</label>
+    <input class="well mono" id="pw3" type="password" autocomplete="new-password">
+    <div class="helper">At least 8 characters. Stored on this device only.</div>
+    <button class="btn">Create account</button>
+    <button class="btn btn-quiet">Back to sign in</button>
+  </div>
+</div>
+
+<!-- U1 user management, full -->
+<div class="screen-label"><h2>U1 · User management, full</h2><p>The owner's ledger: one hairline row per account, role badges in mono, the current user marked, actions per row.</p></div>
+<div class="phone">
+  <h1 class="head">Users</h1>
+  <p class="sub">Who can sign in on this device</p>
+
+  <div class="card">
+    <div class="rowline">
+      <span class="who"><span class="nm">Aminah <span class="badge on">owner</span></span><br><span class="rl mono">aminah@example.com</span></span>
+      <span class="code">you</span>
+    </div>
+    <div class="rowline">
+      <span class="who"><span class="nm">Hafiz <span class="badge">editor</span></span><br><span class="rl mono">hafiz@example.com</span></span>
+      <button class="btn btn-quiet" style="width:auto; min-height:36px; padding:0 14px; margin:0; font-size:14px">Manage</button>
+    </div>
+    <div class="rowline">
+      <span class="who"><span class="nm">Sara <span class="badge">viewer</span></span><br><span class="rl mono">sara@example.com</span></span>
+      <button class="btn btn-quiet" style="width:auto; min-height:36px; padding:0 14px; margin:0; font-size:14px">Manage</button>
+    </div>
+  </div>
+
+  <button class="btn">+ Invite user</button>
+</div>
+
+<!-- U2 manage one user -->
+<div class="screen-label"><h2>U2 · Manage one user</h2><p>Role change as a segmented choice; removal is a quiet rust action that asks once, never a surprise.</p></div>
+<div class="phone">
+  <h1 class="head">Hafiz</h1>
+  <p class="sub mono" style="font-size:14px">hafiz@example.com</p>
+
+  <div class="card">
+    <label>Role</label>
+    <div class="seg">
+      <input type="radio" name="rl" id="r1"><label for="r1">Owner</label>
+      <input type="radio" name="rl" id="r2" checked><label for="r2">Editor</label>
+      <input type="radio" name="rl" id="r3"><label for="r3">Viewer</label>
+    </div>
+    <div class="helper">Editor: add items and enter prices. Viewer: read only.</div>
+    <button class="btn">Save role</button>
+    <button class="btn btn-danger">Remove user</button>
+  </div>
+</div>
+
+<!-- U3 invite + empty -->
+<div class="screen-label"><h2>U3 · Invite user, and the empty state</h2><p>Invite asks for email and role. On a fresh device the ledger shows what to do first.</p></div>
+<div class="phone">
+  <h1 class="head">Invite user</h1>
+  <p class="sub">They sign in on this device with it</p>
+
+  <div class="card">
+    <label for="iv">Email</label>
+    <input class="well mono" id="iv" type="email" placeholder="they@example.com">
+    <label>Role</label>
+    <div class="seg">
+      <input type="radio" name="ir" id="i1" checked><label for="i1">Editor</label>
+      <input type="radio" name="ir" id="i2"><label for="i2">Viewer</label>
+    </div>
+    <div class="helper">This demo creates the account locally, no email is sent.</div>
+    <button class="btn">Send invite</button>
+  </div>
+
+  <div class="card" style="text-align:center; padding:24px 16px; margin-top:32px">
+    <p style="font:700 17px var(--font-display)">No users yet</p>
+    <p class="sub" style="margin-top:4px">Create the first account to own this device's lists.</p>
+    <button class="btn btn-quiet" style="width:auto; padding:0 16px; margin-top:12px">+ Create account</button>
+  </div>
+</div>
+
+</body>
+</html>

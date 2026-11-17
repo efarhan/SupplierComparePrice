@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>S1 to S6 previews · Terrazzo system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700&family=Onest:wght@400;500&family=JetBrains+Mono:wght@500&display=swap" rel="stylesheet">
+<style>
+/* Hallmark · previews for review · theme: terrazzo (off-white) · scope: app · not a ship build · v2.0.0 */
+:root {
+  --paper: oklch(96% 0.009 82); --paper-2: oklch(92% 0.012 82); --paper-3: oklch(87.5% 0.014 80);
+  --plate: oklch(99.5% 0.003 82);
+  --ink: oklch(16% 0.006 60); --ink-2: oklch(27% 0.006 60); --muted: oklch(46% 0.01 60);
+  --rule: oklch(81% 0.012 80);
+  --accent: oklch(53% 0.15 38); --accent-soft: oklch(91% 0.035 45); --accent-ink: oklch(99.5% 0.003 82); --focus: oklch(50% 0.16 38);
+  --font-display: "Syne", ui-sans-serif, sans-serif;
+  --font-body: "Onest", ui-sans-serif, sans-serif;
+  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --shadow-card: 14px 14px 0 var(--paper-3);
+  --shadow-hover: 14px 14px 0 var(--ink);
+  --sup1: oklch(62% 0.19 15); --sup2: oklch(55% 0.10 235); --sup3: oklch(40% 0.13 300);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { overflow-x: clip; }
+body { background: var(--paper); color: var(--ink); font: 400 16px/1.5 var(--font-body); padding: 48px 16px 96px; }
+:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+/* review scaffolding */
+.screen-label { max-width: 480px; margin: 64px auto 8px; }
+.screen-label h2 { font: 700 26px/1.05 var(--font-display); letter-spacing: -0.025em; }
+.screen-label p { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.phone { max-width: 480px; margin: 16px auto 0; padding: 24px 20px; background: var(--paper); border: 1px solid var(--rule); }
+
+/* shared system */
+.head { font: 700 28px/1.05 var(--font-display); letter-spacing: -0.025em; }
+.sub { color: var(--muted); font-size: 14px; margin-top: 4px; }
+.card { background: var(--plate); border: 2px solid var(--ink); box-shadow: var(--shadow-card); padding: 16px; margin-top: 20px; }
+.card:hover { box-shadow: var(--shadow-hover); }
+.card:focus-within, .card:focus-visible { box-shadow: var(--shadow-hover); }
+.rowbtn { display: block; width: 100%; text-align: left; background: none; border: none; font: inherit; color: inherit; cursor: pointer; padding: 0; }
+.mono { font-family: var(--font-mono); font-weight: 500; font-variant-numeric: tabular-nums; }
+.code { font: 500 12px var(--font-mono); color: var(--muted); }
+.price-row { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; padding: 10px 0; border-top: 1px solid var(--rule); }
+.price-row:first-of-type { border-top: none; }
+.price-row .sup { font-weight: 500; font-size: 15px; }
+.price-row .price { font: 500 16px var(--font-mono); }
+.price-row.win .price { color: var(--accent); font-size: 18px; }
+.price-row.win .price::after { content: " ★"; font-size: 14px; }
+.price-row .none { color: var(--muted); font: 500 14px var(--font-mono); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 48px; padding: 0 20px; border: 1px solid var(--ink); background: var(--ink); color: var(--plate); font: 500 16px var(--font-body); cursor: pointer; width: 100%; margin-top: 20px; }
+.btn:hover { background: var(--ink-2); }
+.btn:active { transform: translateY(1px); }
+.btn-quiet { background: transparent; color: var(--ink); }
+.btn-quiet:hover { background: var(--paper-2); }
+.well { border: 1px solid var(--muted); background: var(--plate); padding: 12px 14px; width: 100%; font: 500 18px var(--font-mono); color: var(--ink); }
+.well:focus { outline: 2px solid var(--focus); outline-offset: -3px; border-color: var(--ink); }
+label { display: block; font: 500 14px var(--font-body); color: var(--muted); margin: 16px 0 6px; }
+.helper { min-height: 20px; font-size: 13px; color: var(--muted); margin-top: 4px; }
+.helper.err { color: var(--accent); }
+.band { background: var(--paper-2); border-top: 1px solid var(--rule); border-bottom: 1px solid var(--rule); padding: 16px; margin-top: 20px; display: flex; justify-content: space-between; align-items: baseline; }
+.band .lbl { font-size: 14px; color: var(--muted); }
+.band .val { font: 500 24px var(--font-mono); }
+.ticks { position: relative; }
+.ticks::before, .ticks::after { content: ""; position: absolute; width: 12px; height: 12px; }
+.ticks::before { top: -6px; left: -6px; border-top: 1px solid var(--muted); border-left: 1px solid var(--muted); }
+.ticks::after { bottom: -6px; right: -6px; border-bottom: 1px solid var(--muted); border-right: 1px solid var(--muted); }
+.swatch { display: inline-block; width: 14px; height: 14px; vertical-align: -2px; }
+.searchrow { display: flex; gap: 8px; margin-top: 16px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 16px; }
+.mini { background: var(--plate); border: 1px solid var(--rule); padding: 12px; }
+.mini .nm { font: 700 15px/1.2 var(--font-display); margin-top: 4px; }
+.mini .bs { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.seg { display: flex; gap: 0; margin-top: 6px; }
+.seg label { margin: 0; flex: 1; border: 1px solid var(--rule); padding: 10px; font: 500 14px var(--font-body); color: var(--ink); text-align: center; cursor: pointer; background: var(--plate); }
+.seg input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.seg input:checked + label { background: var(--ink); color: var(--plate); border-color: var(--ink); }
+.seg input:focus-visible + label { outline: 2px solid var(--focus); outline-offset: 2px; }
+.total-row { display: flex; justify-content: space-between; padding: 10px 0; border-top: 1px solid var(--rule); }
+.total-row .nm { font-weight: 500; }
+.total-row .amt { font: 500 15px var(--font-mono); }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; } }
+</style>
+</head>
+<body>
+
+<!-- S1 -->
+<div class="screen-label"><h2>S1 · Compare (home)</h2><p>Item ledger: rust price and a star mark the winner. Card shadow turns ink on hover.</p></div>
+<div class="phone">
+  <h1 class="head">Compare</h1>
+  <p class="sub">Sample data only, nothing is saved</p>
+
+  <div class="card ticks">
+    <button class="rowbtn"><span class="code">ITM-001 · 3 suppliers</span>
+      <div style="font:700 19px var(--font-display); margin:4px 0 8px">Beras Wangi 5kg</div></button>
+    <div class="price-row"><span class="sup">Klang Import</span><span class="price">RM 32.50</span></div>
+    <div class="price-row win"><span class="sup">Pasar Malam Trading</span><span class="price">RM 29.90</span></div>
+    <div class="price-row"><span class="sup">JB Wholesale</span><span class="price">RM 31.20</span></div>
+  </div>
+
+  <div class="card">
+    <button class="rowbtn"><span class="code">ITM-002 · 3 suppliers</span>
+      <div style="font:700 19px var(--font-display); margin:4px 0 8px">Minyak Masak 5L</div></button>
+    <div class="price-row"><span class="sup">Klang Import</span><span class="price">RM 38.00</span></div>
+    <div class="price-row"><span class="sup">Pasar Malam Trading</span><span class="price">RM 42.50</span></div>
+    <div class="price-row win"><span class="sup">JB Wholesale</span><span class="price">RM 36.90</span></div>
+  </div>
+
+  <div class="card">
+    <button class="rowbtn"><span class="code">ITM-003 · 3 suppliers</span>
+      <div style="font:700 19px var(--font-display); margin:4px 0 8px">Serai 1kg (Lemongrass)</div></button>
+    <div class="price-row"><span class="sup">Klang Import</span><span class="price">RM 8.50</span></div>
+    <div class="price-row win"><span class="sup">Pasar Malam Trading</span><span class="price">RM 6.20</span></div>
+    <div class="price-row"><span class="sup">JB Wholesale</span><span class="price">RM 7.80</span></div>
+  </div>
+
+  <button class="btn">+ Add item</button>
+</div>
+
+<!-- S2 -->
+<div class="screen-label"><h2>S2 · Add / Edit Item</h2><p>Spec-sheet form. Item code tagged top right; segmented category; inline error shown.</p></div>
+<div class="phone">
+  <h1 class="head">Add item</h1>
+  <p class="sub">Name it, then enter prices</p>
+
+  <div class="card">
+    <div style="display:flex; justify-content:space-between; align-items:baseline">
+      <span style="font:500 14px var(--font-body); color:var(--muted)">Item</span>
+      <span class="code">ITM-004</span>
+    </div>
+    <label for="nm">Item name</label>
+    <input class="well" id="nm" value="Telur 30pcs" style="font-family:var(--font-body); font-weight:500">
+    <div class="helper err">Give the item a name before saving.</div>
+    <label>Category</label>
+    <div class="seg">
+      <input type="radio" name="cat" id="c1"><label for="c1">Grocery</label>
+      <input type="radio" name="cat" id="c2" checked><label for="c2">Produce</label>
+      <input type="radio" name="cat" id="c3"><label for="c3">Household</label>
+    </div>
+    <button class="btn">Save item</button>
+    <button class="btn btn-quiet">Cancel</button>
+  </div>
+</div>
+
+<!-- S3 -->
+<div class="screen-label"><h2>S3 · Price Entry (sheet)</h2><p>One square well per supplier, values in mono. Cheapest well carries rust border + corner ticks; a live footer strip restates the lowest.</p></div>
+<div class="phone">
+  <h1 class="head">Prices</h1>
+  <p class="sub">Beras Wangi 5kg · ITM-001</p>
+
+  <div class="card ticks" style="border-color: var(--accent)">
+    <label for="p1">SUP-01 · Klang Import</label>
+    <input class="well" id="p1" value="32.50" inputmode="decimal">
+    <label for="p2">SUP-02 · Pasar Malam Trading</label>
+    <input class="well" id="p2" value="29.90" inputmode="decimal">
+    <label for="p3">SUP-03 · JB Wholesale</label>
+    <input class="well" id="p3" value="31.20" inputmode="decimal">
+    <div class="helper">Type a price, the rust marker moves as you go.</div>
+  </div>
+
+  <div class="band">
+    <span class="lbl">Lowest</span>
+    <span class="val" style="color:var(--accent)">RM 29.90 · SUP-02</span>
+  </div>
+</div>
+
+<!-- S4 -->
+<div class="screen-label"><h2>S4 · Cheapest Result</h2><p>Winner table with a totals band. Not-priced rows stay honest.</p></div>
+<div class="phone">
+  <h1 class="head">Winners</h1>
+  <p class="sub">The cheapest source, item by item</p>
+
+  <div class="card">
+    <div class="total-row"><span class="nm">Beras Wangi 5kg <span class="code">SUP-02</span></span><span class="amt" style="color:var(--accent)">RM 29.90</span></div>
+    <div class="total-row"><span class="nm">Minyak Masak 5L <span class="code">SUP-03</span></span><span class="amt" style="color:var(--accent)">RM 36.90</span></div>
+    <div class="total-row"><span class="nm">Serai 1kg (Lemongrass) <span class="code">SUP-02</span></span><span class="amt" style="color:var(--accent)">RM 6.20</span></div>
+    <div class="total-row"><span class="nm">Telur 30pcs <span class="code">SUP-01</span></span><span class="amt" style="color:var(--accent)">RM 13.50</span></div>
+    <div class="total-row"><span class="nm" style="color:var(--muted)">Cili 250g</span><span class="none">not priced</span></div>
+  </div>
+
+  <div class="band">
+    <span class="lbl">Total if you buy cheapest</span>
+    <span class="val">RM 86.50</span>
+  </div>
+
+  <button class="btn btn-quiet">Copy list</button>
+</div>
+
+<!-- S5 -->
+<div class="screen-label"><h2>S5 · Items Catalog</h2><p>Sample-drawer index: search, then code cards in two columns. Shown with a no-match state.</p></div>
+<div class="phone">
+  <h1 class="head">Catalog</h1>
+  <p class="sub">Every item you have priced</p>
+
+  <div class="searchrow">
+    <input class="well" aria-label="Search items" placeholder="Search items" style="font-family:var(--font-body); font-weight:400; font-size:16px">
+  </div>
+
+  <div class="grid2">
+    <div class="mini"><span class="code">ITM-001</span><div class="nm">Beras Wangi 5kg</div><div class="bs">best · SUP-02</div></div>
+    <div class="mini"><span class="code">ITM-002</span><div class="nm">Minyak Masak 5L</div><div class="bs">best · SUP-03</div></div>
+    <div class="mini"><span class="code">ITM-003</span><div class="nm">Serai 1kg</div><div class="bs">best · SUP-02</div></div>
+    <div class="mini"><span class="code">ITM-004</span><div class="nm">Telur 30pcs</div><div class="bs">best · SUP-01</div></div>
+  </div>
+
+  <div class="card" style="text-align:center; padding:24px 16px">
+    <p style="font:700 17px var(--font-display)">No item matches</p>
+    <p class="sub" style="margin-top:4px">Add it and price it in one go.</p>
+    <button class="btn btn-quiet" style="width:auto; padding:0 16px; margin-top:12px">+ Add “Cili 250g”</button>
+  </div>
+</div>
+
+<!-- S6 -->
+<div class="screen-label"><h2>S6 · Suppliers</h2><p>Settings ledger. Mono codes, square colour swatches (the only colour left), edit per row.</p></div>
+<div class="phone">
+  <h1 class="head">Suppliers</h1>
+  <p class="sub">Who you buy from</p>
+
+  <div class="card">
+    <div class="total-row"><span class="nm"><span class="swatch" style="background:var(--sup1)"></span> <span class="code">SUP-01</span> Klang Import Sdn Bhd</span><button class="btn btn-quiet" style="width:auto; min-height:36px; padding:0 14px; margin:0; font-size:14px">Edit</button></div>
+    <div class="total-row"><span class="nm"><span class="swatch" style="background:var(--sup2)"></span> <span class="code">SUP-02</span> Pasar Malam Trading</span><button class="btn btn-quiet" style="width:auto; min-height:36px; padding:0 14px; margin:0; font-size:14px">Edit</button></div>
+    <div class="total-row"><span class="nm"><span class="swatch" style="background:var(--sup3)"></span> <span class="code">SUP-03</span> JB Wholesale</span><button class="btn btn-quiet" style="width:auto; min-height:36px; padding:0 14px; margin:0; font-size:14px">Edit</button></div>
+  </div>
+
+  <button class="btn">+ Add supplier</button>
+</div>
+
+</body>
+</html>
